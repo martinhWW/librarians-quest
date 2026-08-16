@@ -3,6 +3,8 @@ import Phaser from 'phaser'
 export default class LibraryScene extends Phaser.Scene {
   constructor() {
     super('LibraryScene')
+
+    this.moveQueue = []
   }
 
   create() {
@@ -39,11 +41,44 @@ export default class LibraryScene extends Phaser.Scene {
     this.createChair(325, 200, 40, 80, 'black')
     this.createChair(200, 75, 80, 40, 'black')
     this.createChair(200, 325, 80, 40, 'black')
+    
+    const frontRegisterTable = this.createTable(600, 400, 100, 'black', 90, 270)
+    const backRegisterTable = this.createTable(650, 400, 100, 'black', 270, 90)
 
     this.createLibrarian(600, 600)
 
-    const frontRegisterTable = this.createTable(600, 400, 100, 'black', 90, 270)
-    const backRegisterTable = this.createTable(650, 400, 100, 'black', 270, 90)
+    this.input.on('pointerdown', (pointer) => {
+      this.moveQueue.push({
+        x: pointer.x,
+        y: pointer.y,
+      })
+    })
+
+
+  }
+
+  update() {
+    if(this.moveQueue.length == 0) {
+      return
+    }
+    const speed = 4
+
+    const target = this.moveQueue[0]
+
+    const dx = target.x - this.librarian.x
+    const dy = target.y - this.librarian.y
+
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    if (distance < speed) {
+      this.librarian.x = target.x
+      this.librarian.y = target.y
+      
+      this.moveQueue.shift()
+      return
+    }
+    this.librarian.x += (dx / distance) * speed
+    this.librarian.y += (dy / distance) * speed
   }
 
   createShelf(x, y, width, height, color) {
@@ -51,7 +86,7 @@ export default class LibraryScene extends Phaser.Scene {
   }
 
   createLibrarian(x, y) {
-    this.add.circle(480, 360, 16, 0xffffff)
+    this.librarian = this.add.circle(x, y, 16, 0xffffff)
   }
 
   createDesk(shape, x, y, width, height, color) {
