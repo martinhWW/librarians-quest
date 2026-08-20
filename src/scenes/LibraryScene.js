@@ -6,11 +6,14 @@ export default class LibraryScene extends Phaser.Scene {
     super('LibraryScene')
 
     this.moveQueue = []
+    this.currentPath = []
     this.obstacles = []
     this.interactables = []
 
     this.gridSize = 40
     this.grid = []
+
+    
   }
 
   create() {
@@ -62,7 +65,7 @@ export default class LibraryScene extends Phaser.Scene {
       const interactable = this.interactables.find((object) => {
         return object.getBounds().contains(pointer.x, pointer.y)
       })
-
+    
       if (interactable) {
         this.queueMovement(
           interactable.interactionX,
@@ -70,16 +73,9 @@ export default class LibraryScene extends Phaser.Scene {
         )
         return
       }
-
+    
       this.queueMovement(pointer.x, pointer.y)
     })
-
-    this.testPathfinding(
-      this.librarian.x,
-      this.librarian.y,
-      900,
-      75
-    )
 
   }
 
@@ -89,13 +85,24 @@ export default class LibraryScene extends Phaser.Scene {
 
 
   updateMovement(delta) {
-    if(this.moveQueue.length == 0) {
-      return
+    if(this.currentPath.length === 0) {
+      if (this.moveQueue.length === 0) {
+        return
+      }
+    
+    const destination = this.moveQueue[0]
+    this.findPathTo(destination.x, destination.y)
+
+    if (this.currentPath.length === 0) {
+       this.moveQueue.shift()
+       return
     }
+    }
+
     const speed = 240
     const moveDistance = speed * (delta / 1000)
 
-    const target = this.moveQueue[0]
+    const target = this.currentPath[0]
 
     const dx = target.x - this.librarian.x
     const dy = target.y - this.librarian.y
@@ -103,35 +110,22 @@ export default class LibraryScene extends Phaser.Scene {
     const distance = Math.sqrt(dx * dx + dy * dy)
 
     if (distance < moveDistance) {
-     this.completeMovement(target)
+     this.librarian.x = target.x
+     this.librarian.y = target.y
+     this.currentPath.shift()
+
+     if (this.currentPath.length === 0) {
+       this.moveQueue.shift()
+     }
       return
     }
     this.librarian.x += (dx / distance) * moveDistance
     this.librarian.y += (dy / distance) * moveDistance
   }
 
-  completeMovement(target) {
-    this.librarian.x = target.x
-    this.librarian.y = target.y
-
-    this.moveQueue.shift()
-  }
-
   queueMovement(x, y) {
-    const blocked = this.isPathBlocked(this.librarian.x, this.librarian.y, x, y)
     this.moveQueue.push({ x, y })
   }
-
-  isPathBlocked(startX, startY, endX, endY) {
-    const line = new Phaser.Geom.Line(startX, startY, endX, endY)
-
-    return this.obstacles.some((obstacle) => {
-      const bounds = obstacle.getBounds()
-
-      return Phaser.Geom.Intersects.LineToRectangle(line, bounds)
-    })
-  }
-
 
   createPathfindingGrid() {
     const matrix = this.grid.map((row) => {
@@ -149,21 +143,37 @@ export default class LibraryScene extends Phaser.Scene {
     }
   }
 
-  testPathfinding(startX, startY, endX, endY) {
-    const start = this.worldToGrid(startX, startY)
-    const end = this.worldToGrid(endX, endY)
+  gridToWorld(x, y) {
+    return {
+      x: x * this.gridSize + this.gridSize / 2,
+      y: y * this.gridSize + this.gridSize / 2,
+    }
+  }
 
+  findPathTo(endX, endY) {
+    const start = this.worldToGrid(
+      this.librarian.x,
+      this.librarian.y
+    )
+  
+    const end = this.worldToGrid(endX, endY)
+  
     const grid = this.pathfindingGrid.clone()
     const finder = new PF.AStarFinder()
 
     console.log('Start:', start)
     console.log('End:', end)
-    console.log(
-      'Grid size:',
-      this.pathfindingGrid.width,
-      this.pathfindingGrid.height
-      )
 
+    console.log(
+      'Start walkable:',
+      grid.isWalkableAt(start.x, start.y)
+    )
+
+console.log(
+  'End walkable:',
+  grid.isWalkableAt(end.x, end.y)
+)
+  
     const path = finder.findPath(
       start.x,
       start.y,
@@ -171,8 +181,11 @@ export default class LibraryScene extends Phaser.Scene {
       end.y,
       grid
     )
-    console.log("Path: ", path)
-    this.drawPath(path)
+  
+    this.currentPath = path.map(([x, y]) => {
+      return this.gridToWorld(x, y)
+    })
+    console.log('Current path:', this.currentPath)
   }
 
   drawPath(path) {
