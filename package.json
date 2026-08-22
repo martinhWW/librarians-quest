@@ -12,6 +12,7 @@
     "vite": "^8.2.0"
   },
   "dependencies": {
+    "pathfinding": "^0.4.18",
     "phaser": "^4.2.1"
   }
 }
