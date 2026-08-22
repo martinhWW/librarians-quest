@@ -1,9 +1,9 @@
 import Phaser from "phaser";
 import PF from "pathfinding";
 
-export default class LibraryScene extends Phaser.Scene {
+export default class BookshopFloorScene extends Phaser.Scene {
   constructor() {
-    super("LibraryScene");
+    super("BookshopFloorScene");
 
     this.moveQueue = [];
     this.currentPath = [];
@@ -18,8 +18,8 @@ export default class LibraryScene extends Phaser.Scene {
 
   create() {
     this.renderTitle();
-    this.createLibraryLayout();
-    this.createLibrarian(1000, 700);
+    this.createBookshopLayout();
+    this.createBookseller(1000, 700);
     this.createNavigationGrid();
     this.markBlockedCells();
 
@@ -37,17 +37,17 @@ export default class LibraryScene extends Phaser.Scene {
   /** Render Title**/
   /////////////////////////////////////
   renderTitle() {
-    this.add.text(30, 10, "Librarian's Quest", {
+    this.add.text(30, 10, "Lily's Cozy Bookshop", {
       fontSize: "32px",
       color: "#ffffff",
     });
   }
 
   /////////////////////////////////////
-  /** Create Library Layout**/
+  /** Create Bookshop Layout**/
   /////////////////////////////////////
 
-  createLibraryLayout() {
+  createBookshopLayout() {
     this.createShelves();
     this.createObstacleFurniture();
     this.createRegister();
@@ -92,15 +92,15 @@ export default class LibraryScene extends Phaser.Scene {
   }
 
   /////////////////////////////////////
-  /** Create Librarian**/
+  /** Create Bookseller**/
   /////////////////////////////////////
 
-  createLibrarian(x, y) {
-    this.librarian = this.add.circle(x, y, 16, 0xffffff);
+  createBookseller(x, y) {
+    this.bookseller = this.add.circle(x, y, 16, 0xffffff);
   }
 
   /////////////////////////////////////
-  /** Librarian's Movement & Pathfinding**/
+  /** Bookseller's Movement & Pathfinding**/
   /////////////////////////////////////
 
   /**
@@ -108,7 +108,7 @@ export default class LibraryScene extends Phaser.Scene {
    *
    * If an interactable object (such as a bookshelf) is clicked,
    * queue its predefined interaction point rather than the object's
-   * physical coordinates. This allows the librarian to approach
+   * physical coordinates. This allows the Bookseller to approach
    * furniture without trying to walk inside it.
    *
    * Floor clicks queue the exact clicked location.
@@ -127,10 +127,10 @@ export default class LibraryScene extends Phaser.Scene {
   }
 
   /**
-   * Adds a destination to the end of the librarian's movement queue.
+   * Adds a destination to the end of the Bookseller's movement queue.
    *
    * Destinations are processed in FIFO order so multiple clicks behave
-   * like Diner Dash: the librarian must visit previously queued
+   * like Diner Dash: the Bookseller must visit previously queued
    * destinations before moving to newer ones.
    */
   queueMovement(x, y) {
@@ -148,14 +148,14 @@ export default class LibraryScene extends Phaser.Scene {
   }
 
   /**
-   * Moves the librarian through the currently calculated A* path.
+   * Moves the Bookseller through the currently calculated A* path.
    *
    * moveQueue stores the destinations requested by the player.
    * currentPath stores the individual A* waypoints required to reach
    * the current destination.
    *
    * When no current path exists, a path is calculated for the first
-   * destination in moveQueue. The librarian then travels through each
+   * destination in moveQueue. The Bookseller then travels through each
    * waypoint until the destination is reached. Once complete, the
    * destination is removed and the next queued destination can begin.
    */
@@ -183,16 +183,16 @@ export default class LibraryScene extends Phaser.Scene {
     // Always move toward the next waypoint in the calculated path.
     const target = this.currentPath[0];
 
-    const dx = target.x - this.librarian.x;
-    const dy = target.y - this.librarian.y;
+    const dx = target.x - this.bookseller.x;
+    const dy = target.y - this.bookseller.y;
 
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // If the librarian can reach the waypoint this frame, snap to its
+    // If the Bookseller can reach the waypoint this frame, snap to its
     // exact position and remove it from the current path.
     if (distance < moveDistance) {
-      this.librarian.x = target.x;
-      this.librarian.y = target.y;
+      this.bookseller.x = target.x;
+      this.bookseller.y = target.y;
       this.currentPath.shift();
 
       // An empty currentPath means the queued destination is complete.
@@ -203,22 +203,22 @@ export default class LibraryScene extends Phaser.Scene {
     }
 
     // Normalize the direction vector so movement speed is consistent
-    // regardless of the direction the librarian is traveling.
-    this.librarian.x += (dx / distance) * moveDistance;
-    this.librarian.y += (dy / distance) * moveDistance;
+    // regardless of the direction the Bookseller is traveling.
+    this.bookseller.x += (dx / distance) * moveDistance;
+    this.bookseller.y += (dy / distance) * moveDistance;
   }
 
   /**
-   * Calculates a walkable route from the librarian's current position
+   * Calculates a walkable route from the Bookseller's current position
    * to a destination using A* pathfinding.
    *
    * PathFinding.js works with grid coordinates, while Phaser positions
    * objects using pixel/world coordinates. The start and destination are
    * converted to grid cells before pathfinding, and the resulting path
-   * is converted back into world coordinates for the librarian to follow.
+   * is converted back into world coordinates for the Bookseller to follow.
    */
   findPathTo(destinationX, destinationY) {
-    const start = this.worldToGrid(this.librarian.x, this.librarian.y);
+    const start = this.worldToGrid(this.bookseller.x, this.bookseller.y);
 
     const end = this.worldToGrid(destinationX, destinationY);
 
@@ -333,7 +333,7 @@ export default class LibraryScene extends Phaser.Scene {
    * Marks grid cells as blocked when their center falls within
    * the bounds of a furniture obstacle.
    *
-   * These blocked cells prevent A* from routing the librarian
+   * These blocked cells prevent A* from routing the Bookseller
    * through shelves, tables, chairs, and other furniture.
    */
   markBlockedCells() {
