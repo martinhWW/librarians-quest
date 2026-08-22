@@ -14,12 +14,46 @@ export default class BookshopFloorScene extends Phaser.Scene {
     this.grid = [];
 
     this.debugNavigation = false;
+
+    this.customers = [];
+
+    this.bookGenres = [
+      { name: "fantasy", color: 0x4f7cff },
+      { name: "sci-fi", color: 0xb04cff },
+      { name: "mystery", color: 0x50c878 },
+      { name: "romance", color: 0xf5a623 },
+    ];
+
+    this.customerWaitingSpots = [
+      { x: 400, y: 400 },
+      { x: 340, y: 400 },
+      { x: 280, y: 400 },
+      { x: 220, y: 400 },
+    ];
   }
 
   create() {
     this.renderTitle();
     this.createBookshopLayout();
     this.createBookseller(1000, 700);
+
+    this.createCustomer(
+      this.customerWaitingSpots[0].x,
+      this.customerWaitingSpots[0].y,
+    );
+    this.createCustomer(
+      this.customerWaitingSpots[1].x,
+      this.customerWaitingSpots[1].y,
+    );
+    this.createCustomer(
+      this.customerWaitingSpots[2].x,
+      this.customerWaitingSpots[2].y,
+    );
+    this.createCustomer(
+      this.customerWaitingSpots[3].x,
+      this.customerWaitingSpots[3].y,
+    );
+
     this.createNavigationGrid();
     this.markBlockedCells();
 
@@ -92,11 +126,34 @@ export default class BookshopFloorScene extends Phaser.Scene {
   }
 
   /////////////////////////////////////
-  /** Create Bookseller**/
+  /** Create Bookseller and NPCs**/
   /////////////////////////////////////
 
   createBookseller(x, y) {
     this.bookseller = this.add.circle(x, y, 16, 0xffffff);
+  }
+
+  createCustomer(x, y) {
+    const customer = this.add.circle(x, y, 16, 0xff69b4);
+    const randomIndex = Math.floor(Math.random() * this.bookGenres.length);
+    const request = this.bookGenres[randomIndex];
+    customer.request = request;
+    customer.state = "waiting";
+    this.createRequestBubble(customer);
+    this.customers.push(customer);
+    return customer;
+  }
+
+  /////////////////////////////////////
+  /** NPC Actions**/
+  /////////////////////////////////////
+
+  createRequestBubble(customer) {
+    const bubbleX = customer.x;
+    const bubbleY = customer.y - 50;
+
+    this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
+    this.add.rectangle(bubbleX, bubbleY, 14, 20, customer.request.color);
   }
 
   /////////////////////////////////////
