@@ -17,11 +17,12 @@ export default class BookshopFloorScene extends Phaser.Scene {
 
     this.customers = [];
 
-    this.bookGenres = [
-      { name: "fantasy", color: 0x4f7cff },
-      { name: "sci-fi", color: 0xb04cff },
-      { name: "mystery", color: 0x50c878 },
-      { name: "romance", color: 0xf5a623 },
+    // this.availableBookColors = [0x4f7cff, 0xb04cff, 0x50c878, 0xf5a623];
+    this.availableBookColors = [
+      { name: "blue", value: 0x4f7cff },
+      { name: "purple", value: 0xb04cff },
+      { name: "green", value: 0x50c878 },
+      { name: "yellow", value: 0xf5a623 },
     ];
 
     this.customerWaitingSpots = [
@@ -90,13 +91,18 @@ export default class BookshopFloorScene extends Phaser.Scene {
 
   createBookseller(x, y) {
     this.bookseller = this.add.circle(x, y, 16, 0xffffff);
+    this.bookseller.inventory = [];
+    this.booksellet.inventoryVisuals = [];
+    this.bookseller.maxCarry = 2;
   }
 
   createCustomer(x, y) {
     const customer = this.add.circle(x, y, 16, 0xff69b4);
-    const randomIndex = Math.floor(Math.random() * this.bookGenres.length);
-    const request = this.bookGenres[randomIndex];
-    customer.request = request;
+    const randomIndex = Math.floor(
+      Math.random() * this.availableBookColors.length,
+    );
+    const request = this.availableBookColors[randomIndex];
+    customer.requestedBookColor = request;
     customer.state = "waiting";
     this.createRequestBubble(customer);
     this.customers.push(customer);
@@ -112,7 +118,33 @@ export default class BookshopFloorScene extends Phaser.Scene {
     const bubbleY = customer.y - 50;
 
     this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
-    this.add.rectangle(bubbleX, bubbleY, 14, 20, customer.request.color);
+    this.add.rectangle(
+      bubbleX,
+      bubbleY,
+      14,
+      20,
+      customer.requestedBookColor.value,
+    );
+  }
+
+  renderInventory(bookseller) {
+    const bubbleX = bookseller.x;
+    const bubbleY = bookseller.y - 50;
+    const inventory = bookseller.inventory;
+    const inventoryVisuals = bookseller.inventoryVisuals;
+
+    if (inventory.length > 0) {
+      this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
+      for (let i = 0; i < inventory.length; i++) {
+        this.add.rectangle(
+          bubbleX,
+          bubbleY + i * 20,
+          14,
+          20,
+          inventory[i].bookColor.value,
+        );
+      }
+    }
   }
 
   /**
@@ -134,10 +166,10 @@ export default class BookshopFloorScene extends Phaser.Scene {
       this.movementSystem.queueMovement(
         interactable.interactionX,
         interactable.interactionY,
+        interactable,
       );
       return;
     }
-
     this.movementSystem.queueMovement(pointer.x, pointer.y);
   }
 

@@ -19,8 +19,8 @@ export default class MovementSystem {
    * like Diner Dash: the Bookseller must visit previously queued
    * destinations before moving to newer ones.
    */
-  queueMovement(x, y) {
-    this.moveQueue.push({ x, y });
+  queueMovement(x, y, target = null) {
+    this.moveQueue.push({ x, y, target });
   }
 
   /**
@@ -36,14 +36,14 @@ export default class MovementSystem {
    * destination is removed and the next queued destination can begin.
    */
   updateMovement(delta) {
+    if (this.currentPath.length === 0 && this.moveQueue.length === 0) {
+      return;
+    }
+
+    const destination = this.moveQueue[0];
+
     if (this.currentPath.length === 0) {
-      if (this.moveQueue.length === 0) {
-        return;
-      }
-
-      const destination = this.moveQueue[0];
       this.findPathTo(destination.x, destination.y);
-
       // An empty path means the destination cannot currently be reached.
       // Remove it so it does not permanently block the movement queue.
       if (this.currentPath.length === 0) {
@@ -51,7 +51,6 @@ export default class MovementSystem {
         return;
       }
     }
-
     // Movement speed is expressed in pixels per second.
     const speed = 240;
     const moveDistance = speed * (delta / 1000);
@@ -73,6 +72,8 @@ export default class MovementSystem {
 
       // An empty currentPath means the queued destination is complete.
       if (this.currentPath.length === 0) {
+        console.log("Bookseller has reached destination");
+        this.handleArrival(destination.target);
         this.moveQueue.shift();
       }
       return;
@@ -130,5 +131,20 @@ export default class MovementSystem {
       x: x * this.gridSize + this.gridSize / 2,
       y: y * this.gridSize + this.gridSize / 2,
     };
+  }
+
+  handleArrival(target) {
+    switch (target?.interactionType) {
+      case null:
+        return;
+      case "shelf":
+        if (this.bookseller.inventory.length < this.bookseller.maxCarry) {
+          const item = { type: "book", bookColor: target.bookColor };
+          this.bookseller.inventory.push(item);
+          console.log("Book added to inventory");
+          console.log(this.bookseller.inventory);
+        }
+        break;
+    }
   }
 }
