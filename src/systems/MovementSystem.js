@@ -2,7 +2,7 @@ import PF from "pathfinding";
 
 export default class MovementSystem {
   // Receives references to things movement needs but doesn't own
-  constructor(bookseller, pathfindingGrid, gridSize) {
+  constructor(bookseller, pathfindingGrid, gridSize, onInventoryChange) {
     // Uses but doesn't own
     this.bookseller = bookseller;
     this.pathfindingGrid = pathfindingGrid;
@@ -10,6 +10,7 @@ export default class MovementSystem {
 
     this.moveQueue = [];
     this.currentPath = [];
+    this.onInventoryChange = onInventoryChange;
   }
 
   /**
@@ -72,7 +73,6 @@ export default class MovementSystem {
 
       // An empty currentPath means the queued destination is complete.
       if (this.currentPath.length === 0) {
-        console.log("Bookseller has reached destination");
         this.handleArrival(destination.target);
         this.moveQueue.shift();
       }
@@ -133,18 +133,51 @@ export default class MovementSystem {
     };
   }
 
+  /**
+ * Handles interactions after the Bookseller reaches a queued target.
+ *
+ * Uses the target's interaction type to determine the appropriate action:
+ * - shelf: retrieves a book if inventory capacity is available.
+ * - customer: delivers a matching requested book, if carried.
+ * - restock: removes all carried books from inventory.
+ *
+ * Inventory visuals are refreshed whenever the Bookseller's inventory changes.
+ *
+ * @param {Phaser.GameObjects.GameObject} target
+ *   The interactable object the Bookseller has reached.
+ */
   handleArrival(target) {
     switch (target?.interactionType) {
-      case null:
-        return;
       case "shelf":
         if (this.bookseller.inventory.length < this.bookseller.maxCarry) {
           const item = { type: "book", bookColor: target.bookColor };
           this.bookseller.inventory.push(item);
-          console.log("Book added to inventory");
-          console.log(this.bookseller.inventory);
+          this.onInventoryChange(this.bookseller);
         }
         break;
+      case "customer":
+        const index = this.bookseller.inventory.findIndex(
+          (item) => item.bookColor.name === target.request.color.name,
+        );
+        if (index !== -1) {
+          this.bookseller.inventory.splice(index, 1);
+          this.onInventoryChange(this.bookseller);
+          target.state = "served";
+          for (const visual of target.requestVisuals) {
+            visual.destroy();
+          }
+          target.requestVisuals.length = 0;
+        }
+        break;
+      case "restock":
+        const newInventory = this.bookseller.inventory.filter((item) => {
+          return item.type !== "book";
+        });
+        this.bookseller.inventory = newInventory;
+        this.onInventoryChange(this.bookseller);
+        break;
+      default:
+        return;
     }
   }
 }

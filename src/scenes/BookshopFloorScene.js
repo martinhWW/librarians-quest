@@ -69,6 +69,7 @@ export default class BookshopFloorScene extends Phaser.Scene {
       this.bookseller,
       this.pathfindingGrid,
       this.gridSize,
+      this.renderInventory.bind(this),
     );
 
     this.pointerDown = this.pointerDown.bind(this);
@@ -92,7 +93,7 @@ export default class BookshopFloorScene extends Phaser.Scene {
   createBookseller(x, y) {
     this.bookseller = this.add.circle(x, y, 16, 0xffffff);
     this.bookseller.inventory = [];
-    this.booksellet.inventoryVisuals = [];
+    this.bookseller.inventoryVisuals = [];
     this.bookseller.maxCarry = 2;
   }
 
@@ -102,10 +103,20 @@ export default class BookshopFloorScene extends Phaser.Scene {
       Math.random() * this.availableBookColors.length,
     );
     const request = this.availableBookColors[randomIndex];
-    customer.requestedBookColor = request;
+    customer.request = {
+      type: "book",
+      color: request,
+    };
     customer.state = "waiting";
-    this.createRequestBubble(customer);
+    customer.interactionType = "customer";
+    customer.interactionX = customer.x + 40;
+    customer.interactionY = customer.y - 30;
+    customer.requestVisuals = [];
+
+    this.renderRequest(customer);
     this.customers.push(customer);
+    this.interactables.push(customer);
+
     return customer;
   }
 
@@ -113,18 +124,20 @@ export default class BookshopFloorScene extends Phaser.Scene {
   /** Actions**/
   /////////////////////////////////////
 
-  createRequestBubble(customer) {
+  renderRequest(customer) {
     const bubbleX = customer.x;
     const bubbleY = customer.y - 50;
+    const requestVisuals = customer.requestVisuals;
 
-    this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
-    this.add.rectangle(
+    const bubble = this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
+    const request = this.add.rectangle(
       bubbleX,
       bubbleY,
       14,
       20,
-      customer.requestedBookColor.value,
+      customer.request.color.value,
     );
+    requestVisuals.push(bubble, request);
   }
 
   renderInventory(bookseller) {
@@ -133,17 +146,28 @@ export default class BookshopFloorScene extends Phaser.Scene {
     const inventory = bookseller.inventory;
     const inventoryVisuals = bookseller.inventoryVisuals;
 
-    if (inventory.length > 0) {
-      this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
-      for (let i = 0; i < inventory.length; i++) {
-        this.add.rectangle(
-          bubbleX,
-          bubbleY + i * 20,
-          14,
-          20,
-          inventory[i].bookColor.value,
-        );
-      }
+    for (const visual of inventoryVisuals) {
+      visual.destroy();
+    }
+    inventoryVisuals.length = 0;
+
+    for (let i = 0; i < inventory.length; i++) {
+      const visual = this.add.rectangle(
+        bubbleX,
+        bubbleY + i * 20,
+        14,
+        20,
+        inventory[i].bookColor.value,
+      );
+      inventoryVisuals.push(visual);
+    }
+  }
+
+  updateInventoryVisuals() {
+    for (let i = 0; i < this.bookseller.inventoryVisuals.length; i++) {
+      const visual = this.bookseller.inventoryVisuals[i];
+      visual.x = this.bookseller.x + i * 20;
+      visual.y = this.bookseller.y - 50;
     }
   }
 
@@ -181,6 +205,7 @@ export default class BookshopFloorScene extends Phaser.Scene {
    */
   update(time, delta) {
     this.movementSystem.updateMovement(delta);
+    this.updateInventoryVisuals();
   }
 
   /////////////////////////////////////

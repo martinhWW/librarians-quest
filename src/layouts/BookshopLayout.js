@@ -11,6 +11,7 @@ export default class BookshopLayout {
     this.createShelves();
     this.createObstacleFurniture();
     this.createRegister();
+    this.createRestockCart(780, 400, 40, 100, 0xC0C0C0 , 820, 390);
   }
 
   createShelves() {
@@ -132,6 +133,10 @@ export default class BookshopLayout {
     this.createTable(650, 400, 100, "black", 270, 90);
   }
 
+  /////////////////////////////////////////
+  /** Helper Methods**/
+  /////////////////////////////////////////
+
   createShelf(
     x,
     y,
@@ -184,5 +189,14 @@ export default class BookshopLayout {
     );
     this.scene.obstacles.push(table);
     return table;
+  }
+
+  createRestockCart(x, y, width, height, color, interactionX, interactionY) {
+    const cart = this.scene.add.rectangle(x, y, width, height, color);
+    cart.interactionX = interactionX;
+    cart.interactionY = interactionY;
+    cart.interactionType = "restock";
+    this.scene.interactables.push(cart);
+    return cart;
   }
 }
