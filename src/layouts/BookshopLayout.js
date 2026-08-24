@@ -11,25 +11,107 @@ export default class BookshopLayout {
     this.createShelves();
     this.createObstacleFurniture();
     this.createRegister();
+    this.createRestockCart(780, 400, 40, 100, 0xC0C0C0 , 820, 390);
   }
 
   createShelves() {
     //blue shelves
-    this.createShelf(1000, 400, 40, 280, 0x4f7cff, 940, 400);
-    this.createShelf(1100, 400, 40, 280, 0x4f7cff, 1060, 400);
+    this.createShelf(
+      1000,
+      400,
+      40,
+      280,
+      0x4f7cff,
+      940,
+      400,
+      this.scene.availableBookColors.find((color) => color.name === "blue"),
+    );
+    this.createShelf(
+      1100,
+      400,
+      40,
+      280,
+      0x4f7cff,
+      1060,
+      400,
+      this.scene.availableBookColors.find((color) => color.name === "blue"),
+    );
 
     //green shelves
-    this.createShelf(220, 650, 280, 40, 0x50c878, 220, 600);
-    this.createShelf(220, 750, 280, 40, 0x50c878, 220, 700);
+    this.createShelf(
+      220,
+      650,
+      280,
+      40,
+      0x50c878,
+      220,
+      600,
+      this.scene.availableBookColors.find((color) => color.name === "green"),
+    );
+    this.createShelf(
+      220,
+      750,
+      280,
+      40,
+      0x50c878,
+      220,
+      700,
+      this.scene.availableBookColors.find((color) => color.name === "green"),
+    );
 
     //purple shelves
-    this.createShelf(1000, 650, 280, 40, 0xb04cff, 1000, 600);
-    this.createShelf(1000, 750, 280, 40, 0xb04cff, 1000, 700);
+    this.createShelf(
+      1000,
+      650,
+      280,
+      40,
+      0xb04cff,
+      1000,
+      600,
+      this.scene.availableBookColors.find((color) => color.name === "purple"),
+    );
+    this.createShelf(
+      1000,
+      750,
+      280,
+      40,
+      0xb04cff,
+      1000,
+      700,
+      this.scene.availableBookColors.find((color) => color.name === "purple"),
+    );
 
     //yellow shelves
-    this.createShelf(900, 25, 500, 40, 0xf5a623, 900, 75);
-    this.createShelf(800, 150, 200, 80, 0xf5a623, 800, 220);
-    this.createShelf(600, 125, 40, 200, 0xf5a623, 660, 150);
+    this.createShelf(
+      900,
+      25,
+      500,
+      40,
+      0xf5a623,
+      900,
+      75,
+      this.scene.availableBookColors.find((color) => color.name === "yellow"),
+    );
+    this.createShelf(
+      800,
+      150,
+      200,
+      80,
+      0xf5a623,
+      800,
+      220,
+      this.scene.availableBookColors.find((color) => color.name === "yellow"),
+    );
+    this.createShelf(
+      600,
+      125,
+      40,
+      200,
+      0xf5a623,
+      660,
+      150,
+      this.scene.availableBookColors.find((color) => color.name === "yellow"),
+    );
   }
 
   createObstacleFurniture() {
@@ -51,11 +133,26 @@ export default class BookshopLayout {
     this.createTable(650, 400, 100, "black", 270, 90);
   }
 
-  createShelf(x, y, width, height, color, interactionX, interactionY) {
+  /////////////////////////////////////////
+  /** Helper Methods**/
+  /////////////////////////////////////////
+
+  createShelf(
+    x,
+    y,
+    width,
+    height,
+    color,
+    interactionX,
+    interactionY,
+    bookColor,
+  ) {
     const shelf = this.scene.add.rectangle(x, y, width, height, color);
 
     shelf.interactionX = interactionX;
     shelf.interactionY = interactionY;
+    shelf.interactionType = "shelf";
+    shelf.bookColor = bookColor;
 
     this.scene.obstacles.push(shelf);
     this.scene.interactables.push(shelf);
@@ -92,5 +189,14 @@ export default class BookshopLayout {
     );
     this.scene.obstacles.push(table);
     return table;
+  }
+
+  createRestockCart(x, y, width, height, color, interactionX, interactionY) {
+    const cart = this.scene.add.rectangle(x, y, width, height, color);
+    cart.interactionX = interactionX;
+    cart.interactionY = interactionY;
+    cart.interactionType = "restock";
+    this.scene.interactables.push(cart);
+    return cart;
   }
 }

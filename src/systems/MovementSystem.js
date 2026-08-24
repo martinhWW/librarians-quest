@@ -2,7 +2,7 @@ import PF from "pathfinding";
 
 export default class MovementSystem {
   // Receives references to things movement needs but doesn't own
-  constructor(bookseller, pathfindingGrid, gridSize) {
+  constructor(bookseller, pathfindingGrid, gridSize, onInventoryChange) {
     // Uses but doesn't own
     this.bookseller = bookseller;
     this.pathfindingGrid = pathfindingGrid;
@@ -10,6 +10,7 @@ export default class MovementSystem {
 
     this.moveQueue = [];
     this.currentPath = [];
+    this.onInventoryChange = onInventoryChange;
   }
 
   /**
@@ -19,8 +20,8 @@ export default class MovementSystem {
    * like Diner Dash: the Bookseller must visit previously queued
    * destinations before moving to newer ones.
    */
-  queueMovement(x, y) {
-    this.moveQueue.push({ x, y });
+  queueMovement(x, y, target = null) {
+    this.moveQueue.push({ x, y, target });
   }
 
   /**
@@ -36,14 +37,14 @@ export default class MovementSystem {
    * destination is removed and the next queued destination can begin.
    */
   updateMovement(delta) {
+    if (this.currentPath.length === 0 && this.moveQueue.length === 0) {
+      return;
+    }
+
+    const destination = this.moveQueue[0];
+
     if (this.currentPath.length === 0) {
-      if (this.moveQueue.length === 0) {
-        return;
-      }
-
-      const destination = this.moveQueue[0];
       this.findPathTo(destination.x, destination.y);
-
       // An empty path means the destination cannot currently be reached.
       // Remove it so it does not permanently block the movement queue.
       if (this.currentPath.length === 0) {
@@ -51,7 +52,6 @@ export default class MovementSystem {
         return;
       }
     }
-
     // Movement speed is expressed in pixels per second.
     const speed = 240;
     const moveDistance = speed * (delta / 1000);
@@ -73,6 +73,7 @@ export default class MovementSystem {
 
       // An empty currentPath means the queued destination is complete.
       if (this.currentPath.length === 0) {
+        this.handleArrival(destination.target);
         this.moveQueue.shift();
       }
       return;
@@ -130,5 +131,53 @@ export default class MovementSystem {
       x: x * this.gridSize + this.gridSize / 2,
       y: y * this.gridSize + this.gridSize / 2,
     };
+  }
+
+  /**
+ * Handles interactions after the Bookseller reaches a queued target.
+ *
+ * Uses the target's interaction type to determine the appropriate action:
+ * - shelf: retrieves a book if inventory capacity is available.
+ * - customer: delivers a matching requested book, if carried.
+ * - restock: removes all carried books from inventory.
+ *
+ * Inventory visuals are refreshed whenever the Bookseller's inventory changes.
+ *
+ * @param {Phaser.GameObjects.GameObject} target
+ *   The interactable object the Bookseller has reached.
+ */
+  handleArrival(target) {
+    switch (target?.interactionType) {
+      case "shelf":
+        if (this.bookseller.inventory.length < this.bookseller.maxCarry) {
+          const item = { type: "book", bookColor: target.bookColor };
+          this.bookseller.inventory.push(item);
+          this.onInventoryChange(this.bookseller);
+        }
+        break;
+      case "customer":
+        const index = this.bookseller.inventory.findIndex(
+          (item) => item.bookColor.name === target.request.color.name,
+        );
+        if (index !== -1) {
+          this.bookseller.inventory.splice(index, 1);
+          this.onInventoryChange(this.bookseller);
+          target.state = "served";
+          for (const visual of target.requestVisuals) {
+            visual.destroy();
+          }
+          target.requestVisuals.length = 0;
+        }
+        break;
+      case "restock":
+        const newInventory = this.bookseller.inventory.filter((item) => {
+          return item.type !== "book";
+        });
+        this.bookseller.inventory = newInventory;
+        this.onInventoryChange(this.bookseller);
+        break;
+      default:
+        return;
+    }
   }
 }

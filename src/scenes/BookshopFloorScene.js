@@ -17,11 +17,12 @@ export default class BookshopFloorScene extends Phaser.Scene {
 
     this.customers = [];
 
-    this.bookGenres = [
-      { name: "fantasy", color: 0x4f7cff },
-      { name: "sci-fi", color: 0xb04cff },
-      { name: "mystery", color: 0x50c878 },
-      { name: "romance", color: 0xf5a623 },
+    // this.availableBookColors = [0x4f7cff, 0xb04cff, 0x50c878, 0xf5a623];
+    this.availableBookColors = [
+      { name: "blue", value: 0x4f7cff },
+      { name: "purple", value: 0xb04cff },
+      { name: "green", value: 0x50c878 },
+      { name: "yellow", value: 0xf5a623 },
     ];
 
     this.customerWaitingSpots = [
@@ -68,6 +69,7 @@ export default class BookshopFloorScene extends Phaser.Scene {
       this.bookseller,
       this.pathfindingGrid,
       this.gridSize,
+      this.renderInventory.bind(this),
     );
 
     this.pointerDown = this.pointerDown.bind(this);
@@ -90,16 +92,31 @@ export default class BookshopFloorScene extends Phaser.Scene {
 
   createBookseller(x, y) {
     this.bookseller = this.add.circle(x, y, 16, 0xffffff);
+    this.bookseller.inventory = [];
+    this.bookseller.inventoryVisuals = [];
+    this.bookseller.maxCarry = 2;
   }
 
   createCustomer(x, y) {
     const customer = this.add.circle(x, y, 16, 0xff69b4);
-    const randomIndex = Math.floor(Math.random() * this.bookGenres.length);
-    const request = this.bookGenres[randomIndex];
-    customer.request = request;
+    const randomIndex = Math.floor(
+      Math.random() * this.availableBookColors.length,
+    );
+    const request = this.availableBookColors[randomIndex];
+    customer.request = {
+      type: "book",
+      color: request,
+    };
     customer.state = "waiting";
-    this.createRequestBubble(customer);
+    customer.interactionType = "customer";
+    customer.interactionX = customer.x + 40;
+    customer.interactionY = customer.y - 30;
+    customer.requestVisuals = [];
+
+    this.renderRequest(customer);
     this.customers.push(customer);
+    this.interactables.push(customer);
+
     return customer;
   }
 
@@ -107,12 +124,51 @@ export default class BookshopFloorScene extends Phaser.Scene {
   /** Actions**/
   /////////////////////////////////////
 
-  createRequestBubble(customer) {
+  renderRequest(customer) {
     const bubbleX = customer.x;
     const bubbleY = customer.y - 50;
+    const requestVisuals = customer.requestVisuals;
 
-    this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
-    this.add.rectangle(bubbleX, bubbleY, 14, 20, customer.request.color);
+    const bubble = this.add.rectangle(bubbleX, bubbleY, 50, 35, 0xffffff);
+    const request = this.add.rectangle(
+      bubbleX,
+      bubbleY,
+      14,
+      20,
+      customer.request.color.value,
+    );
+    requestVisuals.push(bubble, request);
+  }
+
+  renderInventory(bookseller) {
+    const bubbleX = bookseller.x;
+    const bubbleY = bookseller.y - 50;
+    const inventory = bookseller.inventory;
+    const inventoryVisuals = bookseller.inventoryVisuals;
+
+    for (const visual of inventoryVisuals) {
+      visual.destroy();
+    }
+    inventoryVisuals.length = 0;
+
+    for (let i = 0; i < inventory.length; i++) {
+      const visual = this.add.rectangle(
+        bubbleX,
+        bubbleY + i * 20,
+        14,
+        20,
+        inventory[i].bookColor.value,
+      );
+      inventoryVisuals.push(visual);
+    }
+  }
+
+  updateInventoryVisuals() {
+    for (let i = 0; i < this.bookseller.inventoryVisuals.length; i++) {
+      const visual = this.bookseller.inventoryVisuals[i];
+      visual.x = this.bookseller.x + i * 20;
+      visual.y = this.bookseller.y - 50;
+    }
   }
 
   /**
@@ -134,10 +190,10 @@ export default class BookshopFloorScene extends Phaser.Scene {
       this.movementSystem.queueMovement(
         interactable.interactionX,
         interactable.interactionY,
+        interactable,
       );
       return;
     }
-
     this.movementSystem.queueMovement(pointer.x, pointer.y);
   }
 
@@ -149,6 +205,7 @@ export default class BookshopFloorScene extends Phaser.Scene {
    */
   update(time, delta) {
     this.movementSystem.updateMovement(delta);
+    this.updateInventoryVisuals();
   }
 
   /////////////////////////////////////
